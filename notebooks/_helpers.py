@@ -2,7 +2,8 @@
 
 They are conveniences for the notebooks, not part of the ``geotop_py`` API:
 copy a reference case to a scratch directory, edit keywords in its
-``geotop.inpts``, run it, and read GEOtop tables into pandas.
+``geotop.inpts``, read GEOtop tables into pandas and compare them with the C++
+outputs. The runs themselves are in the notebooks.
 """
 
 from __future__ import annotations
@@ -11,7 +12,7 @@ import re
 import shutil
 import sys
 from pathlib import Path
-from typing import Dict, Optional, Union
+from typing import List, Optional, Union
 
 import pandas as pd
 
@@ -25,9 +26,8 @@ REFERENCE_DIR = "output-tabs-SE27XX"
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-from geotop_py import run_simulation  # noqa: E402
+from geotop_py.io import gt_output  # noqa: E402
 from geotop_py.io import keywords as _keywords  # noqa: E402
-from geotop_py.results import Results  # noqa: E402
 
 PathLike = Union[str, Path]
 
@@ -62,15 +62,17 @@ def _format(value) -> str:
     return repr(value)
 
 
-def set_keywords(case_dir: PathLike, **values) -> None:
+def set_keywords(case_dir: PathLike, **values) -> List[str]:
     """Set keywords in ``case_dir/geotop.inpts``, e.g. ``SnowCorrFactor=1.6``.
 
     An existing assignment is rewritten in place; a keyword the file does not
     mention is appended. An unknown keyword name raises ``KeyError`` instead of
-    being written where GEOtop would silently ignore it.
+    being written where GEOtop would silently ignore it. Returns the lines
+    written.
     """
     path = Path(case_dir) / "geotop.inpts"
     lines = path.read_text().splitlines()
+    written = []
     for key, value in values.items():
         if key.lower() not in _KNOWN:
             raise KeyError(f"{key!r} is not a GEOtop keyword")
@@ -84,54 +86,29 @@ def set_keywords(case_dir: PathLike, **values) -> None:
             lines[hits[-1]] = new
         else:
             lines.append(new)
+        written.append(new)
     path.write_text("\n".join(lines) + "\n")
-
-
-def run_case(case_dir: PathLike, **kwargs) -> Results:
-    """``run_simulation`` quietly, without a progress bar."""
-    kwargs.setdefault("verbose", False)
-    return run_simulation(str(case_dir), **kwargs)
-
-
-def run_variant(name: str, dest: PathLike, keywords: Dict[str, object]) -> Path:
-    """Copy case ``name`` to ``dest``, set ``keywords``, run it; return ``dest``.
-
-    A module-level function, so that a process pool can run several variants
-    in parallel.
-    """
-    case = prepare_case(name, dest)
-    set_keywords(case, **keywords)
-    run_case(case)
-    return case
-
-
-NODATA = -9999.0
-
-
-def _read_table(path: PathLike) -> pd.DataFrame:
-    df = pd.read_csv(path, index_col=0, skipinitialspace=True)
-    df.columns = [c.strip() for c in df.columns]
-    df.index = pd.to_datetime(df.index.str.strip(), format="%d/%m/%Y %H:%M")
-    df.index.name = "date"
-    return df.mask(df <= NODATA + 1e-6)
+    return written
 
 
 def point_df(path: PathLike) -> pd.DataFrame:
-    """A GEOtop point-like table (``point``, ``basin``, ...) indexed by date.
+    """A GEOtop table read by ``gt_output.read_point``, as a frame indexed by date.
 
-    GEOtop's -9999 no-data value becomes NaN. A repeated header (``basin.txt``
-    has two ``Prain_above_canopy[mm]``) gets pandas' ``.1`` suffix.
+    GEOtop's -9999 no-data value is NaN. A repeated header (``basin.txt`` has
+    two ``Prain_above_canopy[mm]``) is keyed ``name.1``.
     """
-    return _read_table(path)
+    t = gt_output.read_point(str(path))
+    df = pd.DataFrame(t.columns, index=pd.DatetimeIndex(t.dates, name="date"))
+    return df
 
 
 def profile_df(path: PathLike) -> pd.DataFrame:
-    """A profile table as a (date x layer or depth) frame, -9999 as NaN.
+    """A profile table: the columns after ``IDpoint`` of :func:`point_df`.
 
     Snow files have one column per layer (``L1`` at the base .. ``Ln``); soil
     files one per depth [mm], returned as floats.
     """
-    df = _read_table(path)
+    df = point_df(path)
     df = df.iloc[:, list(df.columns).index("IDpoint") + 1:]
     try:
         df.columns = [float(c) for c in df.columns]
@@ -161,10 +138,3 @@ def compare_with_reference(name: str, out_dir: PathLike,
                      "worst abs error": worst.worst_abs if worst else 0.0,
                      "note": d.note})
     return pd.DataFrame(rows).set_index("file")
-
-
-def max_abs_diff(got: pd.DataFrame, ref: pd.DataFrame) -> pd.Series:
-    """Largest absolute difference per shared numeric column."""
-    cols = [c for c in ref.columns if c in got.columns]
-    diff: Dict[str, float] = {c: float((got[c] - ref[c]).abs().max()) for c in cols}
-    return pd.Series(diff).sort_values(ascending=False)
