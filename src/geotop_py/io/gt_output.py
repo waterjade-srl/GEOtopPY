@@ -8,6 +8,11 @@ Two kinds of file are produced by a ``PointSim`` run:
   -- per-layer profiles, columns ``L1..Lmax``; ``-9999`` marks a layer that is
   not present at that step (turned into NaN here).
 
+A header may repeat a name (``basin.txt`` has two
+``Prain_above_canopy[mm]``): the repeats are keyed ``name.1``, ``name.2``, ...
+in :attr:`PointTable.columns`, as pandas names them, while
+:attr:`PointTable.header` keeps the file's own names.
+
 Both share the leading bookkeeping columns
 ``Date12[DDMMYYYYhhmm],JulianDayFromYear0[days],TimeFromStart[days],
 Simulation_Period,Run,IDpoint``. Dates are parsed to :class:`datetime`.
@@ -30,7 +35,7 @@ class PointTable:
     """A GEOtop point*.txt table: named columns + parsed dates."""
     header: List[str]
     dates: List[datetime]
-    columns: Dict[str, List[float]]         # header name -> floats (NaN if nodata)
+    columns: Dict[str, List[float]]         # unique column name -> floats (NaN if nodata)
 
     def __len__(self) -> int:
         return len(self.dates)
@@ -63,19 +68,42 @@ def _to_float(tok: str) -> float:
     return math.nan if v <= _NODATA + 1e-6 else v
 
 
+def unique_names(names: List[str]) -> List[str]:
+    """``names`` with each repeat suffixed ``.1``, ``.2``, ... (pandas' rule)."""
+    seen: Dict[str, int] = {}
+    out: List[str] = []
+    taken = set(names)
+    for n in names:
+        if n not in seen:
+            seen[n] = 0
+            out.append(n)
+            continue
+        k = seen[n]
+        while True:
+            k += 1
+            candidate = f"{n}.{k}"
+            if candidate not in taken:
+                break
+        seen[n] = k
+        taken.add(candidate)
+        out.append(candidate)
+    return out
+
+
 def read_point(path: str) -> PointTable:
     with open(path, newline="") as fh:
         reader = csv.reader(fh)
         header = [h.strip() for h in next(reader)]
         if header[0] != _DATE_COL:
             raise ValueError(f"{path}: unexpected first column {header[0]!r}")
-        cols: Dict[str, List[float]] = {h: [] for h in header[1:]}
+        names = unique_names(header[1:])
+        cols: Dict[str, List[float]] = {h: [] for h in names}
         dates: List[datetime] = []
         for row in reader:
             if not row or row[0].strip() == "":
                 continue
             dates.append(_parse_date(row[0]))
-            for name, tok in zip(header[1:], row[1:]):
+            for name, tok in zip(names, row[1:]):
                 cols[name].append(_to_float(tok))
     return PointTable(header=header, dates=dates, columns=cols)
 
