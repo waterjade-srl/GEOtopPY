@@ -74,6 +74,12 @@ Outputs use the paths requested by that configuration. Existing outputs at
 those paths are overwritten. Use `GEOtopPY --help` for output suffix and
 progress options. Meteorological input uses GEOtop's native CSV format.
 
+From Python, `geotop_py.run_simulation(case_dir)` performs the same run and
+also returns, for each point ID, one `StepRecord` per committed internal step
+(state, fluxes, forcing and solver diagnostics); `geotop_py.steps_table`
+flattens them into rows for pandas. The notebooks in `notebooks/` are a short
+introduction for users of the C++ model.
+
 ## Verify the port
 
 Install the test dependencies, then run from the repository root:
