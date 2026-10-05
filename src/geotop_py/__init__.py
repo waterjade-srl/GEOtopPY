@@ -11,8 +11,10 @@ from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _package_version
 
 from . import laws  # noqa: F401
+from .pipeline import run_simulation
+from .results import StepRecord, steps_table
 
-__all__ = ["laws"]
+__all__ = ["laws", "run_simulation", "StepRecord", "steps_table"]
 
 try:
     __version__ = _package_version("GEOtopPY")

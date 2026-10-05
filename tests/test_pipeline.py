@@ -30,8 +30,8 @@ def test_runs_end_to_end_with_exact_radiative_forcing(case, reference_run):
     # asserted below: the time loop may halve Dt on a step it cannot converge
     # at the nominal one and commit it in pieces, exactly as GEOtop does.
     assert len(steps) >= 438
-    assert all(out.converged for (_, _, _, out) in steps)
-    assert all(out.wb_converged for (_, _, _, out) in steps)
+    assert all(r.out.converged for r in steps)
+    assert all(r.out.wb_converged for r in steps)
 
     py = gt_output.read_point(str(sim_dir / "output-tabs_py" / "point0001.txt"))
     ref = gt_output.read_point(os.path.join(REFERENCE_1D, case, "output-tabs-SE27XX",
@@ -168,7 +168,7 @@ def test_station_with_no_valid_reading_falls_back_to_base_defaults(reference_run
     case = "PureDrainageFaked"
     sim_dir, recs = reference_run(case)
     steps = recs[1]
-    assert all(out.converged for (_, _, _, out) in steps)
+    assert all(r.out.converged for r in steps)
 
     py = gt_output.read_point(str(sim_dir / "output-tabs_py" / "point0001.txt"))
     ref = gt_output.read_point(os.path.join(REFERENCE_1D, case, "output-tabs-SE27XX",
@@ -203,7 +203,7 @@ def test_coldelaporte_matches_with_measured_lwin_and_station_coordinates(referen
     """
     case = "ColdelaPorte"
     sim_dir, recs = reference_run(case)
-    assert all(out.converged for (_, _, _, out) in recs[1])
+    assert all(r.out.converged for r in recs[1])
 
     py = gt_output.read_point(str(sim_dir / "output-tabs_py" / "surface0001.txt"))
     ref = gt_output.read_point(os.path.join(REFERENCE_1D, case, "output-tabs-SE27XX",
@@ -286,7 +286,7 @@ def test_dtplot_point_window_longer_than_the_timestep(reference_run):
     case = "CostantMeteo"
     sim_dir, recs = reference_run(case)
     assert len(recs[1]) == 35040          # 365 days x 96 steps of 900 s
-    assert all(out.converged for (_, _, _, out) in recs[1])
+    assert all(r.out.converged for r in recs[1])
 
     py = gt_output.read_point(str(sim_dir / "output-tabs_py" / "surface0001.txt"))
     ref = gt_output.read_point(os.path.join(REFERENCE_1D, case, "output-tabs-SE27XX",
@@ -317,7 +317,7 @@ def test_arf_1d_starts_from_a_nonzero_initial_snowpack(reference_run):
     """Arf 1d starts from a nonzero initial snowpack."""
     case = "ARF_1D"
     sim_dir, recs = reference_run(case)
-    assert all(out.converged for (_, _, _, out) in recs[1])
+    assert all(r.out.converged for r in recs[1])
 
     py = gt_output.read_point(str(sim_dir / "output-tabs_py" / "point0001.txt"))
     ref = gt_output.read_point(os.path.join(REFERENCE_1D, case, "output-tabs-SE27XX",
@@ -346,7 +346,7 @@ def test_arf_1d_starts_from_a_nonzero_initial_snowpack(reference_run):
 def test_matsch_matches_with_the_dtplotpoint_accumulator(case, tsurf_bound, gef_bound, reference_run):
     """Matsch matches with the dtplotpoint accumulator."""
     sim_dir, recs = reference_run(case)
-    assert all(out.converged for (_, _, _, out) in recs[1])
+    assert all(r.out.converged for r in recs[1])
 
     py = gt_output.read_point(str(sim_dir / "output-tabs_py" / "point0001.txt"))
     ref = gt_output.read_point(os.path.join(REFERENCE_1D, case, "output-tabs-SE27XX",
@@ -561,7 +561,9 @@ def test_output_files_are_named_by_the_point_s_real_id(reference_run):
     used to write ``soil0001.txt``/``soil0002.txt`` instead.
     """
     case = "Jungfraujoch"
-    sim_dir, _ = reference_run(case)
+    sim_dir, recs = reference_run(case)
+    # the in-memory records are keyed by the same ID as the files
+    assert set(recs) == {32, 33}
 
     out_dir = sim_dir / "output-tabs_py"
     assert (out_dir / "soil0032.txt").exists()

@@ -18,6 +18,7 @@ SRC = Path(__file__).resolve().parent.parent / "src" / "geotop_py"
 # default.
 ROOT_MODULES = {
     "__init__": "app", "__main__": "app", "cli": "app", "pipeline": "app",
+    "results": "app",
     "constants": "base", "errors": "base", "laws": "base", "numerics": "base",
     "dates": "base", "psychro": "base", "_cxx": "base",
 }

@@ -278,6 +278,30 @@ class LayerProfile:
 
 @dataclass
 class StepOut:
+    """State and fluxes of one point after one internal step.
+
+    The public fields, read through :class:`geotop_py.results.StepRecord`:
+
+    - snow: ``swe`` [kg/m2 = mm] and ``depth`` [mm] of the active layers,
+      ``snow_T`` [C] (thickness-weighted), ``HN`` fresh snow depth [mm],
+      ``Melt`` water leaving the pack base [mm], ``RainOnSnow`` [mm];
+    - glacier: ``gwe`` [mm], ``glac_depth`` [mm], ``glac_T`` [C],
+      ``Melt_glac`` [mm], ``Evap_glac`` [mm];
+    - surface: ``Tg`` surface temperature [C], ``T1`` first material node
+      [C], ``GEF`` ground heat flux [W/m2], ``Evap`` surface evaporation or
+      sublimation [mm], ``evap_soil`` the part charged to bare soil [mm];
+    - canopy: ``fc`` [-], ``LSAI`` [-], ``Tv`` [C], ``SWv`` [W/m2];
+    - energy solver: ``converged``, ``solver_iterations``,
+      ``solver_residual``, ``solver_code`` (0 ok, nonzero failure);
+    - water balance (Richards, ``WaterBalance=1`` only): ``wb_converged``,
+      ``wb_iterations``, ``wb_loss`` mass-balance residual [mm], ``pnet``
+      water reaching the soil surface [mm], ``wb_vbottom``/``wb_vlat``
+      drained volumes [m3];
+    - ``diag``: radiation and turbulence diagnostics
+      (:class:`geotop_py.energy.surface.SurfaceDiag`).
+
+    Other fields serve the model itself and may change.
+    """
     swe: float
     depth: float
     Tg: float

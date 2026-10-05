@@ -48,6 +48,7 @@ from .output.tabs import (
 from .point import state as point_state
 from .point import step as point_step
 from .point import time_loop
+from .results import Results, StepRecord
 from .snow import strati
 from .snow.state import SnowColumn
 from .water import coupling, richards1d, tables
@@ -469,11 +470,22 @@ class _Trial:
     water_done: bool = False   # the water balance ran for every point and converged
 
 
+def _by_point_id(recs: Dict[int, List[StepRecord]],
+                 props: Dict[int, points.PointProperties]) -> Results:
+    """Re-key the records from the internal 1..N loop index to the point ID."""
+    return {props[p].ID: r for p, r in recs.items()}
+
+
 def run_simulation(sim_dir: str, suffix: str = "", verbose: bool = True,
                    progress: Optional[ProgressCallback] = None,
-                   min_Dt: float = 60.0) -> dict:
+                   min_Dt: float = 60.0) -> Results:
     """Run the case described by ``sim_dir/geotop.inpts`` end to end and
-    write GEOtop-format outputs. Returns ``{point: records}``."""
+    write GEOtop-format outputs.
+
+    Returns ``{point ID: [StepRecord, ...]}``, one record per committed
+    internal step, keyed by the GEOtop point ID that also names the output
+    files (see :mod:`geotop_py.results`).
+    """
     pf = parfile.parse(os.path.join(sim_dir, "geotop.inpts"))
 
     exp = {"EnergyBalance": 1, "PointSim": 1}
@@ -639,7 +651,7 @@ def run_simulation(sim_dir: str, suffix: str = "", verbose: bool = True,
 
     Dtplot = dtplot_point(pf, Dt)
     state_pixel = Dtplot > 1.0e-5
-    recs: Dict[int, List[Tuple]] = {p: [] for p in point_ids}
+    recs: Dict[int, List[StepRecord]] = {p: [] for p in point_ids}
     # One entry per emitted row: the accumulated point row, and the record of
     # the internal step the row closes on -- the profile files report that
     # step's state directly rather than an accumulation of the window.
@@ -802,7 +814,8 @@ def run_simulation(sim_dir: str, suffix: str = "", verbose: bool = True,
                 date = init_dt + timedelta(days=t_commit / 86400.0)
                 JD_commit = JD0 + t_commit / 86400.0
                 if tr is not None:
-                    recs[p].append((date, JD_commit, tr.m, tr.out))
+                    recs[p].append(StepRecord(date, JD_commit, s.dt_advanced,
+                                              s.dt_run, s.trials, tr.m, tr.out))
                 if state_pixel:
                     if accepted:
                         accs[p].add(
@@ -892,7 +905,7 @@ def run_simulation(sim_dir: str, suffix: str = "", verbose: bool = True,
                     row_out["highest_water_table_depth[mm]"] = hi_wt
                     rows[p].append(row_out)
                     plotted[p].append(
-                        (plot_dt, plot_JD, recs[p][-1][2], recs[p][-1][3]))
+                        (plot_dt, plot_JD, recs[p][-1].meteo, recs[p][-1].out))
                     tables_acc[p] = [0.0, 0.0, 0.0, 0.0]
                     avg_prof = point_step.LayerProfile(
                         Dz=[], T=[], wice=[], wliq=[],
@@ -963,7 +976,7 @@ def run_simulation(sim_dir: str, suffix: str = "", verbose: bool = True,
                  "snowThetaIce": "SnowIceContentProfileFile",
                  "snowThetaW": "SnowLiqContentProfileFile"}
     if not state_pixel:
-        return recs
+        return _by_point_id(recs, props)
     for p in point_ids:
         col = cols[p]
         pid = props[p].ID
@@ -1079,11 +1092,11 @@ def run_simulation(sim_dir: str, suffix: str = "", verbose: bool = True,
                                book_fields=book_fields,
                                plot_depths=plot_depths, dz_mm=plot_dz_mm)
         if verbose:
-            nonconv = sum(1 for r in recs[p] if not r[3].converged)
+            nonconv = sum(1 for r in recs[p] if not r.out.converged)
             # not _target: it creates the directory, and with no
             # PointOutputFile there is none to name
             where = (os.path.join(sim_dir, os.path.dirname(pt_kw) + suffix)
                      if pt_kw != STRING_NOVALUE else "no point file")
             print(f"point {p}: {len(recs[p])} steps, {len(rows[p])} rows, "
                   f"{nonconv} non-conv -> {where}")
-    return recs
+    return _by_point_id(recs, props)
