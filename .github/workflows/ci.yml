@@ -1,0 +1,106 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 4 * * 1"
+
+jobs:
+  offline:
+    name: offline, python ${{ matrix.python }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.9", "3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[test]" ruff
+
+      - name: Lint
+        run: ruff check .
+
+      # Verified against the recorded index: there is no checkout here to
+      # resolve against, so what this proves is that every citation was checked
+      # against the pinned revision and none has been edited since without
+      # being re-checked.
+      - name: Citations
+        run: python -m tools.citations --check
+
+      - name: Tests
+        run: python -m pytest -q -n auto
+
+      # Left out of a plain `pytest` for speed, not for being optional: they
+      # check what the dashboard cannot, such as convergence and sub-step counts.
+      - name: End-to-end tests
+        run: python -m pytest -q -n auto -m slow
+
+      # The project's acceptance criterion. Bro is 8.7 of the 11 minutes a
+      # full sweep takes; the other twelve cases run in under three, so all
+      # but one rung of the ladder is checked on every push. `acceptance`
+      # sweeps the thirteenth.
+      - name: Acceptance, 12 of 13 cases
+        run: python -m tools.dashboard --run --exclude Bro
+
+  acceptance:
+    name: acceptance, all 13 cases
+    runs-on: ubuntu-latest
+    if: github.event_name != 'push' && github.event_name != 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e ".[test]"
+      - name: Sweep
+        run: python -m tools.dashboard --run
+
+  oracle:
+    name: oracle, rebuilt and re-asked
+    runs-on: ubuntu-latest
+    if: github.event_name != 'push' && github.event_name != 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Read the pinned revision
+        id: pin
+        run: |
+          echo "commit=$(sed -n 's/^commit: *//p' UPSTREAM)" >> "$GITHUB_OUTPUT"
+
+      - name: Clone GEOtop at the pinned revision
+        run: |
+          git init upstream
+          git -C upstream remote add origin https://github.com/geotopmodel/geotop.git
+          git -C upstream fetch --depth 1 origin ${{ steps.pin.outputs.commit }}
+          git -C upstream checkout --detach FETCH_HEAD
+
+      - run: python -m pip install -e ".[test]"
+
+      - name: Build the oracle
+        run: GEOTOP_SRC="$PWD/upstream" bash oracle/build.sh
+
+      # Nothing skips here: with the library present every pin runs against
+      # GEOtop itself, including the two dozen the recording cannot hold.
+      - name: Tests against the real oracle
+        run: GEOTOP_SRC="$PWD/upstream" python -m pytest -q
+
+      - name: The recording still matches the oracle
+        run: GEOTOP_SRC="$PWD/upstream" python -m tools.oracle_replay --verify
+
+      # With a checkout this re-hashes what each citation points at, which is
+      # the check that catches a citation whose target moved upstream.
+      - name: Citations against the checkout
+        run: GEOTOP_SRC="$PWD/upstream" python -m tools.citations --check

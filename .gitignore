@@ -1,0 +1,24 @@
+# Python and build artifacts
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+build/
+dist/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+# Local editors and generated simulation output
+.idea/
+.vscode/
+runs/
+# simulation output written inside the vendored reference cases
+tests/1D/*/output-tabs/
+tests/1D/*/output-prof/
+oracle/.objs/
+upstream/
+# Temporary oracle verification artifacts
+.trace/
+tools/_record_plugin.py

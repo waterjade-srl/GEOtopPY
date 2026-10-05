@@ -1,0 +1,18 @@
+# The GEOtop revision this port is verified against.
+#
+# Every `# GEOtop: src/...:line` comment in the source, every oracle symbol
+# bound in `geotop_py._cxx`, and every `output-tabs-SE27XX` table the
+# acceptance suite compares against refers to THIS revision.  Line numbers move
+# when upstream commits, so a checkout at a different revision makes the
+# citations wrong without making them fail: `tools/citations.py --check` warns
+# when the checkout it finds does not match the commit recorded here.
+#
+# Format: `key: value`, one per line, `#` starts a comment.  Parsed by
+# `tools/paths.py`.
+
+repository: https://github.com/geotopmodel/geotop
+branch:     v3.0
+commit:     1f1fc5afc7a4b0b9daacef181d8be21a8dac47cb
+describe:   v3.0_paper-23-g1f1fc5af
+date:       2025-06-10T16:26:50+02:00
+license:    GPL-3.0

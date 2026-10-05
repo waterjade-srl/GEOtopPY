@@ -1,0 +1,58 @@
+[project]
+name = "GEOtopPY"
+version = "0.1.0"
+description = "Python port of the GEOtop hydrological model, 1D configuration"
+requires-python = ">=3.9"
+dependencies = []
+# A line-by-line translation of GPL-3.0 C++ is a derivative work of it, not an
+# independent reimplementation.  See NOTICE for the provenance this implies.
+license = "GPL-3.0-only"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "Stefano Tasin" }]
+
+[project.urls]
+"Ported from" = "https://github.com/geotopmodel/geotop"
+
+[project.scripts]
+GEOtopPY = "geotop_py.cli:main"
+
+[project.optional-dependencies]
+test = ["pytest>=7.0", "pytest-xdist>=3.0", "numpy>=1.20", "scipy>=1.7"]
+
+[build-system]
+# setuptools 77 is the first release that accepts the PEP 639 SPDX
+# `license` string and `license-files`.
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# The source tree is put on sys.path by conftest.py rather than pytest's
+# `pythonpath`, which older pytest releases ignore with a warning.
+# `oracle` and `reference` are applied automatically by conftest.py from what a
+# test module imports; `slow` is set by hand on the end-to-end tests that
+# simulate a long reference case, and those are left out unless asked for:
+#
+#     pytest -m slow               only them
+#     pytest -m "slow or not slow" everything
+markers = [
+    "oracle: consults the GEOtop v3.0 oracle (replayed from a recording when the library is absent)",
+    "reference: reads the 1D reference cases under tests/1D",
+    "slow: simulates a long reference case end to end",
+]
+addopts = "-m 'not slow'"
+
+[tool.ruff]
+target-version = "py39"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+# E741 forbids `l` as a name. Here it is deliberate: GEOtop indexes soil and
+# snow layers with `l`, and the port keeps the C++ index names so a translation
+# can be read against its source line by line. Renaming them would make every
+# verbatim function harder to check, which is the opposite of the point.
+ignore = ["E741"]

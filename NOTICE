@@ -1,0 +1,54 @@
+GEOtopPY — Python port of the GEOtop hydrological model, 1D configuration
+==========================================================================
+
+Copyright (C) 2026 Waterjade srl
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License version 3, as published by the Free
+Software Foundation.  See the LICENSE file for the full text.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.
+
+
+Provenance
+----------
+
+GEOtopPY is a derivative work of GEOtop, translated function by function from
+C++ to Python.  It is not an independent reimplementation: numerical
+expressions, argument orders, layer index conventions and loop structures are
+reproduced deliberately. The port is validated against the original at
+explicit numerical tolerances. GPL-3.0 applies to this work as to its source.
+
+  GEOtop
+  Copyright (C) 2013 Stefano Endrizzi and the GEOtop contributors
+  https://github.com/geotopmodel/geotop
+  Licensed under GPL-3.0
+
+The exact revision every translated line refers to is pinned in the UPSTREAM
+file at the root of this repository.  Comments of the form
+`# GEOtop: src/<path>:<line>` in `src/geotop_py/` cite that revision and are
+checked against it by `python -m tools.citations --check`.  Older references
+that give only a bare file name and line are being converted to that form;
+until then they are not verified, and some do not follow the official tree's
+layout.
+
+Third-party material redistributed here
+---------------------------------------
+
+`tests/1D/` holds the 13 one-dimensional acceptance cases, copied from
+`tests/1D` of the GEOtop repository at the revision pinned in UPSTREAM.  Every
+file is byte-for-byte as upstream ships it: inputs, and the `output-tabs-SE27XX`
+tables the C++ build produces from them.  The only change is subtraction --
+files no case uses (unreferenced forcing series, `.old` copies, the reference
+run's own output directory) were left out, which halves the size and changes
+nothing a run reads.
+
+  Copyright (C) 2013 Stefano Endrizzi and the GEOtop contributors
+  Licensed under GPL-3.0
+
+`tests/data/oracle_replay.json.gz` holds numerical results computed by that same
+GEOtop revision -- the answers of 2425 calls, recorded so the port can be
+checked against them without building the C++.  Facts about what the program
+computes, not its code, but they originate there.
