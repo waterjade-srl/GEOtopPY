@@ -10,8 +10,8 @@ from datetime import datetime
 
 import pytest
 
-from geotop_py import pipeline
 from geotop_py.io import gt_output
+from geotop_py.output import recorder
 from geotop_py.output import tabs as output_tabs
 from tools.paths import REFERENCE_1D
 
@@ -191,7 +191,7 @@ def test_coldelaporte_matches_with_measured_lwin_and_station_coordinates(referen
        defined (``energy.balance.cc:606``, ``flux()``) -- ``io/meteo.py``
        already parsed the column (``IDX["iLWi"]``) but nothing downstream
        read it, so ``LWin`` was always cloud-derived.
-    2. The live tau_cloud inversion (:func:`geotop_py.meteo.step
+    2. The live tau_cloud inversion (:func:`geotop_py.meteo.forcing
        ._find_tau_cloud_live`) used the *point's* ``Latitude``/``Longitude``
        for solar geometry instead of the *station's*
        (``MeteoStationLatitude``/``MeteoStationLongitude``,
@@ -237,14 +237,14 @@ class _FakePar:
 def test_dtplot_point_converts_hours_and_snaps_up_to_the_timestep():
     """The keyword is in hours; an interval at or below the nominal timestep
     reports once per timestep instead."""
-    assert pipeline.dtplot_point(_FakePar(1.0), 900.0) == 3600.0
-    assert pipeline.dtplot_point(_FakePar(24.0), 3600.0) == 86400.0
+    assert recorder.dtplot_point(_FakePar(1.0), 900.0) == 3600.0
+    assert recorder.dtplot_point(_FakePar(24.0), 3600.0) == 86400.0
     # equal, and just-below (Calabria's 0.0833333333333 h = 299.99999999880 s
     # against its 300 s timestep): both snap to the timestep
-    assert pipeline.dtplot_point(_FakePar(1.0), 3600.0) == 3600.0
-    assert pipeline.dtplot_point(_FakePar(0.0833333333333), 300.0) == 300.0
+    assert recorder.dtplot_point(_FakePar(1.0), 3600.0) == 3600.0
+    assert recorder.dtplot_point(_FakePar(0.0833333333333), 300.0) == 300.0
     # absent keyword: no point output at all
-    assert pipeline.dtplot_point(_FakePar(None), 3600.0) == 0.0
+    assert recorder.dtplot_point(_FakePar(None), 3600.0) == 0.0
 
 
 def test_accumulation_classes_partition_the_columns():

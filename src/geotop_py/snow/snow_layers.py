@@ -17,7 +17,7 @@ composition agrees with it.
 
 Not translated here: ``set_snowice_min`` (operates on the 1-D ``Statevar1D``
 recovery path, a different structure) and ``snow_compactation`` (belongs to the
-water-balance step, wb.py).
+water-balance step, mass_balance.py).
 """
 
 from __future__ import annotations

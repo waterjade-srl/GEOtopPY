@@ -3,7 +3,7 @@
 import pytest
 
 from geotop_py import constants as C
-from geotop_py.water import tables
+from geotop_py.water import depths
 
 try:
     from geotop_py import _cxx
@@ -43,7 +43,7 @@ PA = _pa(DZ, jres=RES, jsat=[0.4] * 7, ja=[0.004] * 7, jns=[1.3] * 7,
     (1500.0, -1), (3500.0, 1), (3500.0, -1), (7000.0, 1), (7000.0, -1),
 ])
 def test_nlayer_matches_the_cxx(D, d):
-    mine = tables.nlayer(D, [0.0] + DZ, 7, d)
+    mine = depths.nlayer(D, [0.0] + DZ, 7, d)
     theirs = _cxx.nlayer(D, DZ, d)
     assert mine == theirs
 
@@ -54,11 +54,11 @@ def _compare_activelayer(T1, th1, thi1):
     T = [0.0] + T1
     th = [0.0] + th1
     thi = [0.0] + thi1
-    mine_up = tables.find_activelayerdepth_up(T, th, thi, RES, [0.0] + DZ)
+    mine_up = depths.find_activelayerdepth_up(T, th, thi, RES, [0.0] + DZ)
     theirs_up = _cxx.find_activelayerdepth_up(T, th, thi, _strip(PA))
     assert mine_up == pytest.approx(theirs_up)
 
-    mine_dw = tables.find_activelayerdepth_dw(T, th, thi, RES, [0.0] + DZ)
+    mine_dw = depths.find_activelayerdepth_dw(T, th, thi, RES, [0.0] + DZ)
     theirs_dw = _cxx.find_activelayerdepth_dw(T, th, thi, _strip(PA))
     assert mine_dw == pytest.approx(theirs_dw)
 
@@ -95,11 +95,11 @@ def test_activelayerdepth_fully_frozen_matches_the_cxx():
 
 def _compare_watertable(Ptot1, Z=6000.0):
     Ptot = [0.0] + Ptot1
-    mine_up = tables.find_watertabledepth_up(Z, Ptot, [0.0] + DZ)
+    mine_up = depths.find_watertabledepth_up(Z, Ptot, [0.0] + DZ)
     theirs_up = _cxx.find_watertabledepth_up(Z, Ptot, _strip(PA))
     assert mine_up == pytest.approx(theirs_up)
 
-    mine_dw = tables.find_watertabledepth_dw(Z, Ptot, [0.0] + DZ)
+    mine_dw = depths.find_watertabledepth_dw(Z, Ptot, [0.0] + DZ)
     theirs_dw = _cxx.find_watertabledepth_dw(Z, Ptot, _strip(PA))
     assert mine_dw == pytest.approx(theirs_dw)
 

@@ -6,7 +6,7 @@ from geotop_py import constants as C
 from geotop_py.energy import vegetation as veg
 from geotop_py.energy.column import SoilLayer
 from geotop_py.energy.surface import SurfaceState, SurfaceStatics
-from geotop_py.meteo.step import Meteo
+from geotop_py.meteo.forcing import Meteo
 from geotop_py.point import step as point_step
 from geotop_py.point.state import Column1D
 from geotop_py.point.step import NominalStep, simulate_energy_balance, step_independent

@@ -28,7 +28,7 @@ import math
 from dataclasses import dataclass, field
 from typing import List, Sequence, Tuple
 
-from ..io.parfile import NUMBER_NOVALUE
+from ..constants import is_novalue
 from . import rad
 from . import turbulence as tb
 
@@ -348,7 +348,7 @@ def apply_time_dependent(vp: VegParams, static: VegParams,
     """
     for k, name in enumerate(TIME_DEPENDENT_FIELDS):
         value = values[k + 1]
-        if int(value) != int(NUMBER_NOVALUE):
+        if not is_novalue(value):
             setattr(vp, name, value)
             if name == "root":
                 vp.root_frac = root_fraction(vp.n_transp + 1, vp.root, 0.0, Dz)

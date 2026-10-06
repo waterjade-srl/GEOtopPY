@@ -12,8 +12,8 @@ import pytest
 
 from geotop_py.energy.column import SoilLayer
 from geotop_py.point.state import Column1D, flatten
+from geotop_py.snow.mass_balance import EBSnow, GlacierWBParams, WBglacier
 from geotop_py.snow.state import SnowColumn
-from geotop_py.snow.wb import EBSnow, GlacierWBParams, WBglacier
 
 
 def _soil(n=2):

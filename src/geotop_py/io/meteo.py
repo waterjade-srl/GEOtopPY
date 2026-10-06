@@ -30,8 +30,8 @@ from typing import Dict, List, Optional, Sequence
 
 from .. import constants as C
 from .. import dates, psychro
-from .parfile import NUMBER_NOVALUE, STRING_NOVALUE
-from .table import NUMBER_ABSENT, read_txt_matrix
+from ..constants import NUMBER_ABSENT, NUMBER_NOVALUE, STRING_NOVALUE, is_absent, is_novalue
+from .table import read_txt_matrix
 
 # GEOtop: src/geotop/constants.h:100-120
 #: Meteo column slots. The order is the storage order.
@@ -57,14 +57,6 @@ HEADER_KEYWORDS = (
 
 class MeteoError(ValueError):
     """Raised where GEOtop would abort while loading a meteo file."""
-
-
-def _absent(value: float) -> bool:
-    return int(value) == int(NUMBER_ABSENT)
-
-
-def _novalue(value: float) -> bool:
-    return int(value) == int(NUMBER_NOVALUE)
 
 
 # GEOtop: src/geotop/parameters.cc:1157 (ST)
@@ -134,12 +126,12 @@ def fixing_dates(data: List[List[float]], ST: float, STstat: float) -> int:
     already had it. A file with neither column is fatal in GEOtop.
     """
     jd, d12 = IDX["iJDfrom0"], IDX["iDate12"]
-    if _absent(data[0][jd]) and not _absent(data[0][d12]):
+    if is_absent(data[0][jd]) and not is_absent(data[0][d12]):
         for row in data:
             row[jd] = dates.dateeur12_to_JDfrom0(row[d12])
             row[jd] += (ST - STstat) / 24.0
         return 1
-    if not _absent(data[0][jd]):
+    if not is_absent(data[0][jd]):
         return 0
     raise MeteoError("date and time not available")
 
@@ -159,13 +151,13 @@ def fill_wind_xy(data: List[List[float]], header_wx: str, header_wy: str) -> int
     """Derive the wind components from speed and direction."""
     ws, wd = IDX["iWs"], IDX["iWdir"]
     wx, wy = IDX["iWsx"], IDX["iWsy"]
-    if not (not _absent(data[0][ws]) and not _absent(data[0][wd])
-            and (_absent(data[0][wx]) or _absent(data[0][wy]))):
+    if not (not is_absent(data[0][ws]) and not is_absent(data[0][wd])
+            and (is_absent(data[0][wx]) or is_absent(data[0][wy]))):
         return 0
 
     replace = header_wx != STRING_NOVALUE and header_wy != STRING_NOVALUE
     for row in data:
-        if not _novalue(row[ws]) and not _novalue(row[wd]):
+        if not is_novalue(row[ws]) and not is_novalue(row[wd]):
             row[wx] = -row[ws] * math.sin(row[wd] * C.Pi / 180.0)
             row[wy] = -row[ws] * math.cos(row[wd] * C.Pi / 180.0)
         else:
@@ -188,13 +180,13 @@ def fill_wind_dir(data: List[List[float]], header_ws: str, header_wd: str) -> in
     """
     ws, wd = IDX["iWs"], IDX["iWdir"]
     wx, wy = IDX["iWsx"], IDX["iWsy"]
-    if not (not _absent(data[0][wx]) and not _absent(data[0][wy])
-            and (_absent(data[0][ws]) or _absent(data[0][wd]))):
+    if not (not is_absent(data[0][wx]) and not is_absent(data[0][wy])
+            and (is_absent(data[0][ws]) or is_absent(data[0][wd]))):
         return 0
 
     replace = header_ws != STRING_NOVALUE and header_wd != STRING_NOVALUE
     for row in data:
-        if not _novalue(row[wx]) and not _novalue(row[wy]):
+        if not is_novalue(row[wx]) and not is_novalue(row[wy]):
             row[ws] = math.sqrt(row[wx] * row[wx] + row[wy] * row[wy])
             if abs(row[wy]) < 1.0e-10:
                 a = C.Pi / 2.0
@@ -227,13 +219,13 @@ def fill_Tdew(data: List[List[float]], header_tdew: str, Zstat: float,
     minus infinity.
     """
     rh, ta, td = IDX["iRh"], IDX["iT"], IDX["iTdew"]
-    if not (not _absent(data[0][rh]) and not _absent(data[0][ta])
-            and _absent(data[0][td])):
+    if not (not is_absent(data[0][rh]) and not is_absent(data[0][ta])
+            and is_absent(data[0][td])):
         return 0
 
     replace = header_tdew != STRING_NOVALUE
     for row in data:
-        if not _novalue(row[rh]) and not _novalue(row[ta]):
+        if not is_novalue(row[rh]) and not is_novalue(row[ta]):
             row[td] = psychro.Tdew(row[ta], max(RHmin, row[rh]) / 100.0, Zstat)
         else:
             row[td] = NUMBER_NOVALUE
@@ -249,13 +241,13 @@ def fill_RH(data: List[List[float]], header_rh: str, Zstat: float) -> int:
     The result is stored as a **percentage**, matching the file convention.
     """
     rh, ta, td = IDX["iRh"], IDX["iT"], IDX["iTdew"]
-    if not (_absent(data[0][rh]) and not _absent(data[0][ta])
-            and not _absent(data[0][td])):
+    if not (is_absent(data[0][rh]) and not is_absent(data[0][ta])
+            and not is_absent(data[0][td])):
         return 0
 
     replace = header_rh != STRING_NOVALUE
     for row in data:
-        if not _novalue(row[td]) and not _novalue(row[ta]):
+        if not is_novalue(row[td]) and not is_novalue(row[ta]):
             row[rh] = 100.0 * psychro.RHfromTdew(row[ta], row[td], Zstat)
         else:
             row[rh] = NUMBER_NOVALUE
@@ -272,13 +264,13 @@ def fill_Pint(data: List[List[float]], header_precint: str) -> int:
     rather than a rate -- the series is one sample shorter than it looks.
     """
     prec, pint, jd = IDX["iPrec"], IDX["iPrecInt"], IDX["iJDfrom0"]
-    if not (not _absent(data[0][prec]) and _absent(data[0][pint])):
+    if not (not is_absent(data[0][prec]) and is_absent(data[0][pint])):
         return 0
 
     data[0][pint] = NUMBER_NOVALUE
     replace = header_precint != STRING_NOVALUE
     for i in range(1, len(data)):
-        if not _novalue(data[i][prec]):
+        if not is_novalue(data[i][prec]):
             data[i][pint] = data[i][prec] / (data[i][jd] - data[i - 1][jd])
             data[i][pint] /= 24.0
         else:
@@ -304,7 +296,7 @@ def load(path: str, col_names: Sequence[str],
     if not data:
         raise MeteoError(f"{path}: no data lines")
 
-    if _absent(data[0][IDX["iDate12"]]) and _absent(data[0][IDX["iJDfrom0"]]):
+    if is_absent(data[0][IDX["iDate12"]]) and is_absent(data[0][IDX["iJDfrom0"]]):
         raise MeteoError(f"{path}: date column missing")
 
     fixing_dates(data, opt.ST, opt.STstat)
@@ -319,7 +311,7 @@ def load(path: str, col_names: Sequence[str],
     if opt.vap_as_RH == 1:
         fill_RH(data, col_names[IDX["iRh"]], opt.Zstat)
 
-    if opt.linear_interpolation == 1 and not _absent(data[0][IDX["iPrec"]]):
+    if opt.linear_interpolation == 1 and not is_absent(data[0][IDX["iPrec"]]):
         raise MeteoError(
             "precipitation given as volume, but LinearInterpolation is set "
             "-- remove one or the other")

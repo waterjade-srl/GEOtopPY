@@ -37,9 +37,9 @@ from ..energy.surface import (
     evap_state_reset,
     surface_forcing,
 )
-from ..meteo.step import Meteo
-from ..snow.strati import snow_layer_combination
-from ..snow.wb import EBSnow, WBglacier, WBsnow, new_snow
+from ..meteo.forcing import Meteo
+from ..snow.mass_balance import EBSnow, WBglacier, WBsnow, new_snow
+from ..snow.snow_layers import snow_layer_combination
 from . import time_loop
 from .state import carry_soil_state, flatten, fresh_snow_depth
 
@@ -371,7 +371,7 @@ def snapshot_profile(col, richards=None) -> LayerProfile:
     (``1..richards.col.nl``, the spin-up-truncated range), the column's own
     ``P0`` when Richards is off entirely, and -- for the deeper layers below
     ``nl`` that no solver touches -- the hydrostatic inversion of
-    ``th0``/``thi0`` through ``psi_teta`` that :mod:`geotop_py.water.init` uses for
+    ``th0``/``thi0`` through ``psi_teta`` that :mod:`geotop_py.water.initial_state` uses for
     the t=0 profile.
     """
     snow = col.snow

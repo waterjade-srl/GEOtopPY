@@ -22,7 +22,7 @@ import math
 from datetime import datetime
 from typing import Dict, Iterable, List, NamedTuple, Union
 
-from .meteo.step import Meteo
+from .meteo.forcing import Meteo
 from .point.step import StepOut
 
 Scalar = Union[float, int, bool, datetime]
@@ -48,7 +48,7 @@ class StepRecord(NamedTuple):
         Trials the time loop ran to commit this step, failed halvings
         included; 1 when the nominal step converged at once.
     ``meteo``
-        Forcing of the step at the point (:class:`geotop_py.meteo.step.Meteo`).
+        Forcing of the step at the point (:class:`geotop_py.meteo.forcing.Meteo`).
     ``out``
         State and fluxes after the step (:class:`geotop_py.point.step.StepOut`).
     """

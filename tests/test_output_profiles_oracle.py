@@ -2,7 +2,7 @@
 
 import pytest
 
-from geotop_py.output.prof import interpolate_soil
+from geotop_py.output.profiles import interpolate_soil
 
 try:
     from geotop_py import _cxx

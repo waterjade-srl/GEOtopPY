@@ -22,7 +22,7 @@ from geotop_py import dates
 from geotop_py.energy import rad
 from geotop_py.io import gt_output, meteo, parfile, points
 from geotop_py.meteo import meteodistr as md
-from geotop_py.meteo.step import (
+from geotop_py.meteo.forcing import (
     LapseRates,
     MeteoDistrConfig,
     StationState,

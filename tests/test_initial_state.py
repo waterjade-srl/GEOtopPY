@@ -7,7 +7,7 @@ import pytest
 from geotop_py import constants as C
 from geotop_py import laws
 from geotop_py.io import parfile, soil
-from geotop_py.water import init
+from geotop_py.water import initial_state as init
 from geotop_py.water.richards1d import node_depths
 from tools.paths import REFERENCE_1D
 

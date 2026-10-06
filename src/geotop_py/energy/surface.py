@@ -127,8 +127,6 @@ class SurfaceState:
         return replace(self)
 
 
-NODATA_TS = -9999.0
-
 # GEOtop: src/geotop/energy.balance.cc:57-58
 # GEOtop: src/geotop/energy.balance.cc:1835-1840 (the gate)
 # Surface-flux refresh gate inside the Newton.
@@ -198,8 +196,8 @@ class FluxBreakdown:
     Eg0: float = 0.0
     Hg1: float = 0.0    # vegetated-fraction sensible heat (Hg_veg column)
     Eg1: float = 0.0
-    Ts: float = NODATA_TS   # canopy-air temperature
-    Qs: float = NODATA_TS   # canopy-air specific humidity
+    Ts: float = C.NUMBER_NOVALUE   # canopy-air temperature
+    Qs: float = C.NUMBER_NOVALUE   # canopy-air specific humidity
 
 
 def _ground_fluxes(diag: "SurfaceDiag", Tg: float,
@@ -231,7 +229,7 @@ def _ground_fluxes(diag: "SurfaceDiag", Tg: float,
     H = E = dH_dT = dE_dT = 0.0
     LW = LWup = 0.0
     Hg0 = Eg0 = Hg1 = Eg1 = 0.0
-    Ts = Qs = NODATA_TS
+    Ts = Qs = C.NUMBER_NOVALUE
 
     if fc < 1.0:
         # A trial cold enough to arm the refresh gate drops the stable-

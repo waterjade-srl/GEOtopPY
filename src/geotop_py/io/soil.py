@@ -37,8 +37,8 @@ from typing import Dict, List, Optional, Sequence
 
 from .. import constants as C
 from .. import laws
-from .parfile import NUMBER_NOVALUE, STRING_NOVALUE
-from .table import NUMBER_ABSENT, read_txt_matrix
+from ..constants import NUMBER_NOVALUE, STRING_NOVALUE, is_novalue, is_undefined
+from .table import read_txt_matrix
 
 #: Soil property rows, in storage order. The index of a name here, plus one, is
 #: the row index the matrix is addressed by.
@@ -134,18 +134,6 @@ class SoilError(ValueError):
     """Raised where GEOtop would abort while reading the soil parameters."""
 
 
-def _absent(value: float) -> bool:
-    return int(value) == int(NUMBER_ABSENT)
-
-
-def _novalue(value: float) -> bool:
-    return int(value) == int(NUMBER_NOVALUE)
-
-
-def _undefined(value: float) -> bool:
-    return _absent(value) or _novalue(value)
-
-
 def _new_matrix(nlayers: int) -> List[List[float]]:
     """A ``[row][layer]`` matrix, both 1-based; index 0 of each axis is unused."""
     return [[0.0] * (nlayers + 1) for _ in range(NSOILPROP + 1)]
@@ -202,16 +190,16 @@ def fill_field_capacity_and_wilting_point(pa: List[List[float]],
     """
     for i in range(1, nlayers + 1):
         if guarded:
-            defined = all(not _novalue(pa[ROW[name]][i])
+            defined = all(not is_novalue(pa[ROW[name]][i])
                           for name in ("jsat", "jres", "ja", "jns"))
             if not defined or int(pa[ROW["jss"]][i]) == 0:
                 continue
         n = pa[ROW["jns"]][i]
         args = (0.0, pa[ROW["jsat"]][i], pa[ROW["jres"]][i], pa[ROW["ja"]][i],
                 n, 1.0 - 1.0 / n, C.PsiMin, pa[ROW["jss"]][i])
-        if _novalue(pa[ROW["jfc"]][i]):
+        if is_novalue(pa[ROW["jfc"]][i]):
             pa[ROW["jfc"]][i] = laws.teta_psi(PSI_FIELD_CAPACITY, *args)
-        if _novalue(pa[ROW["jwp"]][i]):
+        if is_novalue(pa[ROW["jwp"]][i]):
             pa[ROW["jwp"]][i] = laws.teta_psi(PSI_WILTING_POINT, *args)
 
 
@@ -239,7 +227,7 @@ def soil_parameters_from_keywords(pf) -> SoilParameters:
                                        DEFAULT_INIT_WATER_TABLE_DEPTH)
 
     a = pf.number("SoilLayerThicknesses", 0, NUMBER_NOVALUE)
-    if not _novalue(a) and pf.components("SoilLayerThicknesses") > 1:
+    if not is_novalue(a) and pf.components("SoilLayerThicknesses") > 1:
         nlayers = pf.components("SoilLayerThicknesses")
         pa = _new_matrix(nlayers)
         pa[ROW["jdz"]][1] = a
@@ -247,7 +235,7 @@ def soil_parameters_from_keywords(pf) -> SoilParameters:
             pa[ROW["jdz"]][i] = pf.number("SoilLayerThicknesses", i - 1,
                                           pa[ROW["jdz"]][i - 1])
     else:
-        if _novalue(a):
+        if is_novalue(a):
             a = DEFAULT_LAYER_THICKNESS
         nlayers = int(pf.number("SoilLayerNumber", 0, float(DEFAULT_LAYER_NUMBER)))
         pa = _new_matrix(nlayers)
@@ -263,7 +251,7 @@ def soil_parameters_from_keywords(pf) -> SoilParameters:
 
     fill_field_capacity_and_wilting_point(pa, nlayers)
 
-    if all(not _novalue(pa[ROW["jpsi"]][i]) for i in range(1, nlayers + 1)):
+    if all(not is_novalue(pa[ROW["jpsi"]][i]) for i in range(1, nlayers + 1)):
         init_water_table_depth = NUMBER_NOVALUE
 
     pa_bed = _new_matrix(nlayers)
@@ -291,7 +279,7 @@ def _cascade(pa: List[List[float]], defaults: SoilParameters,
     old = defaults.pa
     old_nlayers = defaults.nlayers
     for j in range(1, nlayers + 1):
-        if _undefined(pa[row][j]):
+        if is_undefined(pa[row][j]):
             pa[row][j] = old[row][j] if j <= old_nlayers else pa[row][j - 1]
 
 
@@ -345,7 +333,7 @@ def read_soil_parameters(name: Optional[str], col_names: Sequence[str],
         fill_field_capacity_and_wilting_point(pa, nlayers)
 
         init_water_table_depth = defaults.init_water_table_depth
-        if all(not _novalue(pa[ROW["jpsi"]][j]) for j in range(1, nlayers + 1)):
+        if all(not is_novalue(pa[ROW["jpsi"]][j]) for j in range(1, nlayers + 1)):
             init_water_table_depth = NUMBER_NOVALUE
     else:
         nlayers = defaults.nlayers
@@ -366,7 +354,7 @@ def read_soil_parameters(name: Optional[str], col_names: Sequence[str],
         for j in range(1, nlayers + 1):
             pa_bed[n][j] = old_bed[n][j] if j <= old_nlayers else pa_bed[n][j - 1]
         for j in range(1, nlayers + 1):
-            if _novalue(pa_bed[n][j]):
+            if is_novalue(pa_bed[n][j]):
                 pa_bed[n][j] = pa[n][j]
 
     return SoilParameters(pa=pa, pa_bed=pa_bed,

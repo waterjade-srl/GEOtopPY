@@ -6,6 +6,7 @@ import os
 
 import pytest
 
+from geotop_py.constants import is_novalue
 from geotop_py.io import meteo, parfile
 from geotop_py.meteo import clouds
 from tools.paths import REFERENCE_1D
@@ -117,7 +118,7 @@ def test_fill_meteo_data_with_cloudiness_matches_oracle(station):
     itauC = clouds.IDX["itauC"]
     tauC_mine = [row[itauC] for row in mine]
     for i, (a, b) in enumerate(zip(tauC_mine, tauC_cxx)):
-        a_missing = a is None or clouds._novalue(a)
+        a_missing = a is None or is_novalue(a)
         b_missing = b is None
         assert a_missing == b_missing, f"row {i}: mine={a!r} cxx={b!r}"
         if not a_missing:

@@ -28,26 +28,13 @@ from typing import List, Optional, Sequence, Tuple
 
 from .. import constants as C
 from .. import psychro
+from ..constants import NUMBER_NOVALUE, is_absent, is_undefined
 from ..energy import rad
 from ..io.meteo import IDX
-from ..io.parfile import NUMBER_ABSENT, NUMBER_NOVALUE
-from ..io.table import NUMBER_ABSENT as TABLE_NUMBER_ABSENT
 
 Row = Sequence[float]
 Table = Sequence[Row]
 Horizon = Sequence[Tuple[float, float]]
-
-
-def _absent(v: float) -> bool:
-    return int(v) == int(NUMBER_ABSENT) or int(v) == int(TABLE_NUMBER_ABSENT)
-
-
-def _novalue(v: float) -> bool:
-    return int(v) == int(NUMBER_NOVALUE)
-
-
-def _undefined(v: float) -> bool:
-    return _absent(v) or _novalue(v)
 
 
 # GEOtop: src/geotop/clouds.cc:216-278 (the "plotting" file write is not reproduced)
@@ -79,11 +66,11 @@ def find_cloudiness(n: int, meteo: Table, lat_deg: float, lon_deg: float,
     P = psychro.pressure(Z)
 
     RH = meteo[n][IDX["iRh"]]
-    if not _undefined(RH):
+    if not is_undefined(RH):
         RH = RH / 100.0
     else:
         T_raw, Td_raw = meteo[n][IDX["iT"]], meteo[n][IDX["iTdew"]]
-        if not _undefined(T_raw) and not _undefined(Td_raw):
+        if not is_undefined(T_raw) and not is_undefined(Td_raw):
             RH = psychro.RHfromTdew(T_raw, Td_raw, Z)
         else:
             RH = 0.4
@@ -91,7 +78,7 @@ def find_cloudiness(n: int, meteo: Table, lat_deg: float, lon_deg: float,
         RH = 0.01
 
     T = meteo[n][IDX["iT"]]
-    if _undefined(T):
+    if is_undefined(T):
         T = 0.0
 
     others = rad.make_others(lat_deg, lon_deg, ST, Et, Delta, RH, T, P,
@@ -102,10 +89,10 @@ def find_cloudiness(n: int, meteo: Table, lat_deg: float, lon_deg: float,
     SW = meteo[n][IDX["iSW"]]
     return rad.cloud_transmittance(
         JDbegin, JDend, others, E0,
-        ISWR=None if _undefined(SW) else SW,
+        ISWR=None if is_undefined(SW) else SW,
         sky=sky, SWrefl_surr=SWrefl_surr,
-        SWdiffuse=None if _undefined(SWd) else SWd,
-        SWdirect=None if _undefined(SWb) else SWb)
+        SWdiffuse=None if is_undefined(SWd) else SWd,
+        SWdirect=None if is_undefined(SWb) else SWb)
 
 
 # GEOtop: src/geotop/clouds.cc:287-309
@@ -266,8 +253,8 @@ def fill_meteo_data_with_cloudiness(meteo: List[List[float]], horizon: Horizon,
     caller uses to decide whether the column needs writing back to disk (a
     step this port does not reproduce -- see the module docstring).
     """
-    has_sw = (not _absent(meteo[0][IDX["iSW"]])
-              or (not _absent(meteo[0][IDX["iSWb"]]) and not _absent(meteo[0][IDX["iSWd"]])))
+    has_sw = (not is_absent(meteo[0][IDX["iSW"]])
+              or (not is_absent(meteo[0][IDX["iSWb"]]) and not is_absent(meteo[0][IDX["iSWd"]])))
     if not has_sw:
         return False
 

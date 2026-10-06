@@ -21,8 +21,8 @@ from __future__ import annotations
 import os
 from typing import List, Tuple
 
-from .parfile import STRING_NOVALUE
-from .table import NUMBER_ABSENT, read_txt_matrix
+from ..constants import STRING_NOVALUE, is_absent
+from .table import read_txt_matrix
 
 #: The flat, unobscured horizon GEOtop falls back to: four points 90 degrees
 #: apart, all at zero elevation.
@@ -34,10 +34,6 @@ HEADER_KEYWORDS = ("HeaderHorizonAngle", "HeaderHorizonHeight")
 
 class HorizonError(ValueError):
     """Raised where GEOtop would abort while reading a horizon file."""
-
-
-def _absent(value: float) -> bool:
-    return int(value) == int(NUMBER_ABSENT)
 
 
 # GEOtop: src/geotop/meteodata.cc:458-577
@@ -60,7 +56,7 @@ def read_horizon(stem: str, index: int, col_names: List[str]
         return list(DEFAULT_HORIZON)
 
     rows = read_txt_matrix(path, col_names)
-    if not rows or _absent(rows[0][0]) or _absent(rows[0][1]):
+    if not rows or is_absent(rows[0][0]) or is_absent(rows[0][1]):
         raise HorizonError(f"{path}: missing {col_names[0]!r} and/or {col_names[1]!r}")
 
     return [(row[0], row[1]) for row in rows]

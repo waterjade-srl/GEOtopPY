@@ -18,7 +18,7 @@ SRC = Path(__file__).resolve().parent.parent / "src" / "geotop_py"
 # default.
 ROOT_MODULES = {
     "__init__": "app", "__main__": "app", "cli": "app", "pipeline": "app",
-    "results": "app",
+    "initialize": "app", "results": "app",
     "constants": "base", "errors": "base", "laws": "base", "numerics": "base",
     "dates": "base", "psychro": "base", "_cxx": "base",
 }
@@ -116,7 +116,7 @@ def test_no_module_imports_above_its_layer():
 @pytest.mark.parametrize("mod, target", [
     ("io.meteo", "energy.rad"),          # a reader reaching into the model
     ("energy.surface", "water.coupling"),  # two peer physics packages
-    ("snow.wb", "point.state"),          # physics reaching up to the column state
+    ("snow.mass_balance", "point.state"),          # physics reaching up to the column state
 ])
 def test_the_checker_catches_each_kind_of_violation(mod, target, monkeypatch):
     """Guard the guard: inject one bad import and require it to be reported."""

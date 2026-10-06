@@ -1,11 +1,11 @@
-"""Regression checks for wb."""
+"""Regression checks for snow.mass_balance."""
 
 import pytest
 
 from geotop_py import constants as C
 from geotop_py import laws
+from geotop_py.snow.mass_balance import EBSnow, SnowWBParams, WBsnow, new_snow, snow_compactation
 from geotop_py.snow.state import SnowColumn
-from geotop_py.snow.wb import EBSnow, SnowWBParams, WBsnow, new_snow, snow_compactation
 
 try:
     from geotop_py import _cxx

@@ -24,12 +24,11 @@ from __future__ import annotations
 import math
 from typing import Dict, List, Optional, Sequence, Tuple
 
+from ..constants import NUMBER_NOVALUE
 from ..energy import rad, surface
 from ..energy import turbulence as tb
-from ..meteo.step import Meteo
+from ..meteo.forcing import Meteo
 from ..point.step import StepOut
-
-NODATA = -9999.0
 
 # Exact header order of output_tabs/point*.txt (Date12 first).
 POINT_COLUMNS: List[str] = [
@@ -144,14 +143,14 @@ def build_row(idpoint: int, date, JD: float, JD0: float, Dt: float,
     # 786-793): snow, else glacier, else soil.  Evap_surface is the soil one, so
     # it must be zero while either ice stack is present, not just snow.
     row["Evap_surface[mm]"] = out.evap_soil
-    row["Qvegetation[-]"] = cs.Qv if cs is not None else NODATA
+    row["Qvegetation[-]"] = cs.Qv if cs is not None else NUMBER_NOVALUE
     row["Qsurface[-]"] = b.Qg
     row["Qair[-]"] = d.Qa
     row["Qcanopyair[-]"] = b.Qs
     row["LObukhov[m]"] = d.Lobukhov
     row["LObukhovcanopy[m]"] = cs.Locc if cs is not None else 0.0
     row["Decay_of_K_in_canopy[-]"] = cs.decay if cs is not None else 0.0
-    row["Wind_speed_top_canopy[m/s]"] = cs.u_top if cs is not None else NODATA
+    row["Wind_speed_top_canopy[m/s]"] = cs.u_top if cs is not None else NUMBER_NOVALUE
     row["SWup[W/m2]"] = d.SWup
     row["LWup[W/m2]"] = b.LWup
 
@@ -175,8 +174,8 @@ def state_columns(out: StepOut) -> Dict[str, float]:
     col: Dict[str, float] = {}
     col["snow_depth[mm]"] = out.depth
     col["snow_water_equivalent[mm]"] = out.swe
-    col["snow_density[kg/m3]"] = (out.swe / out.depth * 1000.0) if has_snow else NODATA
-    col["snow_temperature[C]"] = out.snow_T if not math.isnan(out.snow_T) else NODATA
+    col["snow_density[kg/m3]"] = (out.swe / out.depth * 1000.0) if has_snow else NUMBER_NOVALUE
+    col["snow_temperature[C]"] = out.snow_T if not math.isnan(out.snow_T) else NUMBER_NOVALUE
     # GEOtop: src/geotop/output.cc:328-352
     # The whole glacier output block is gated by ``max_glac_layers>0``; with
     # the module off (every one of the 13 reference cases -- none sets
@@ -193,7 +192,7 @@ def state_columns(out: StepOut) -> Dict[str, float]:
     # soil thaw / water table: accumulated apart, on the nominal step
     for c in ("lowest_thawed_soil_depth[mm]", "highest_thawed_soil_depth[mm]",
               "lowest_water_table_depth[mm]", "highest_water_table_depth[mm]"):
-        col[c] = NODATA
+        col[c] = NUMBER_NOVALUE
     return col
 
 
@@ -350,7 +349,7 @@ def _fmt(v) -> str:
     if isinstance(v, str):
         return v
     if v is None or (isinstance(v, float) and math.isnan(v)):
-        return f"{NODATA:f}"
+        return f"{NUMBER_NOVALUE:f}"
     return f"{v:f}"
 
 
@@ -395,7 +394,7 @@ def write_point(path: str, rows: List[Dict[str, float]],
 
     ``columns`` overrides the default full :data:`POINT_COLUMNS` set/order --
     the explicit-position branch of the ``PointAll``/``*Point`` mechanism
-    (see :func:`geotop_py.pipeline._point_book_fields`); ``None`` entries are
+    (see :func:`geotop_py.output.recorder._point_book_fields`); ``None`` entries are
     an unassigned output position, written as header ``"None"`` and value
     ``-9999`` (output.cc's own convention for the analogous basin/soil gap).
     """
@@ -404,7 +403,7 @@ def write_point(path: str, rows: List[Dict[str, float]],
     with open(path, "w") as fh:
         fh.write(",".join(header) + "\n")
         for r in rows:
-            fh.write(",".join(_fmt(r[c]) if c is not None else _fmt(NODATA)
+            fh.write(",".join(_fmt(r[c]) if c is not None else _fmt(NUMBER_NOVALUE)
                               for c in cols) + "\n")
 
 
@@ -580,7 +579,7 @@ def write_basin(path: str, rows: List[Dict[int, object]],
             cells = []
             for i in obsn:
                 if i < 0:
-                    cells.append(_fmt(NODATA))
+                    cells.append(_fmt(NUMBER_NOVALUE))
                 elif i == 0:
                     cells.append(r[0].strftime("%d/%m/%Y %H:%M"))
                 else:

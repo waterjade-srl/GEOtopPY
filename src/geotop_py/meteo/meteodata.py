@@ -33,20 +33,11 @@ from __future__ import annotations
 from typing import List, Sequence, Tuple
 
 from .. import dates
+from ..constants import NUMBER_ABSENT, NUMBER_NOVALUE, is_absent, is_novalue
 from ..io.meteo import MeteoError
-from ..io.parfile import NUMBER_NOVALUE
-from ..io.table import NUMBER_ABSENT
 
 Row = Sequence[float]
 Table = Sequence[Row]
-
-
-def _absent(v: float) -> bool:
-    return int(v) == int(NUMBER_ABSENT)
-
-
-def _novalue(v: float) -> bool:
-    return int(v) == int(NUMBER_NOVALUE)
 
 
 # GEOtop: src/geotop/meteodata.cc:420-439
@@ -94,7 +85,7 @@ def integrate_meas_linear_beh(flag: int, t: float, i: int, data: Table,
     """Trapezoid area under the linear interpolant of ``data[i-1:i+1, col]``,
     between time ``t`` and row ``i``'s timestamp."""
     vi, vim1 = data[i][col], data[i - 1][col]
-    if _novalue(vi) or _absent(vi) or _novalue(vim1) or _absent(vim1):
+    if is_novalue(vi) or is_absent(vi) or is_novalue(vim1) or is_absent(vim1):
         return NUMBER_NOVALUE
     t0 = time_in_JDfrom0(flag, i - 1, col_date, data)
     t1 = time_in_JDfrom0(flag, i, col_date, data)
@@ -111,7 +102,7 @@ def integrate_meas_constant_beh(flag: int, t: float, i: int, data: Table,
     """Rectangle area under ``data[i, col]`` held constant from row ``i-1``'s
     timestamp to time ``t``."""
     vi = data[i][col]
-    if _novalue(vi) or _absent(vi):
+    if is_novalue(vi) or is_absent(vi):
         return NUMBER_NOVALUE
     t0 = time_in_JDfrom0(flag, i - 1, col_date, data)
     return vi * (t - t0)
@@ -132,7 +123,7 @@ def time_interp_linear(t0: float, tbeg: float, tend: float, data: Table,
 
     out = [0.0] * ncols
     for c in range(ncols):
-        if _absent(data[0][c]):
+        if is_absent(data[0][c]):
             out[c] = NUMBER_ABSENT
             continue
         if not (abeg == 1 and aend == 1):
@@ -142,13 +133,13 @@ def time_interp_linear(t0: float, tbeg: float, tend: float, data: Table,
         acc, ok = 0.0, True
 
         add = integrate_meas_linear_beh(flag, tbeg, ibeg + 1, data, c, col_date)
-        ok = not _novalue(add)
+        ok = not is_novalue(add)
         if ok:
             acc += add
 
         if ok:
             add = integrate_meas_linear_beh(flag, tend, iend + 1, data, c, col_date)
-            ok = not _novalue(add)
+            ok = not is_novalue(add)
             if ok:
                 acc -= add
 
@@ -157,7 +148,7 @@ def time_interp_linear(t0: float, tbeg: float, tend: float, data: Table,
             t = time_in_JDfrom0(flag, j, col_date, data)
             add = integrate_meas_linear_beh(flag, t, j + 1, data, c, col_date)
             j += 1
-            ok = not _novalue(add)
+            ok = not is_novalue(add)
             if ok:
                 acc += add
 
@@ -182,7 +173,7 @@ def time_interp_constant(t0: float, tbeg: float, tend: float, data: Table,
 
     out = [0.0] * ncols
     for c in range(ncols):
-        if _absent(data[0][c]):
+        if is_absent(data[0][c]):
             out[c] = NUMBER_ABSENT
             continue
         if not (abeg == 1 and aend == 1):
@@ -196,19 +187,19 @@ def time_interp_constant(t0: float, tbeg: float, tend: float, data: Table,
             t = time_in_JDfrom0(flag, j + 1, col_date, data)
             add = integrate_meas_constant_beh(flag, t, j + 1, data, c, col_date)
             j += 1
-            ok = not _novalue(add)
+            ok = not is_novalue(add)
             if ok:
                 acc += add
 
         if ok:
             add = integrate_meas_constant_beh(flag, tbeg, ibeg + 1, data, c, col_date)
-            ok = not _novalue(add)
+            ok = not is_novalue(add)
             if ok:
                 acc -= add
 
         if ok:
             add = integrate_meas_constant_beh(flag, tend, iend + 1, data, c, col_date)
-            ok = not _novalue(add)
+            ok = not is_novalue(add)
             if ok:
                 acc += add
 
@@ -229,9 +220,9 @@ def time_no_interp(flag: int, istart: int, data: Table, col_date: int,
 
     out = [0.0] * ncols
     for c in range(ncols):
-        if _absent(data[0][c]):
+        if is_absent(data[0][c]):
             out[c] = NUMBER_ABSENT
-        elif abeg == 1 and not _novalue(data[ibeg][c]):
+        elif abeg == 1 and not is_novalue(data[ibeg][c]):
             out[c] = data[ibeg][c]
         else:
             out[c] = NUMBER_NOVALUE
@@ -242,6 +233,6 @@ def time_no_interp(flag: int, istart: int, data: Table, col_date: int,
 def find_station(metvar: int, var: Table) -> int:
     """First station row whose ``metvar`` column is not ``NUMBER_ABSENT``."""
     i = 0
-    while _absent(var[i][metvar]) and i < len(var) - 1:
+    while is_absent(var[i][metvar]) and i < len(var) - 1:
         i += 1
     return i

@@ -23,8 +23,8 @@ from __future__ import annotations
 
 from typing import Callable, Dict, List, Optional, Sequence
 
-from ..io.parfile import NUMBER_NOVALUE
-from .tabs import NODATA, _fmt
+from ..constants import NUMBER_NOVALUE, is_novalue
+from .tabs import _fmt
 
 _BOOK = ["Date12[DDMMYYYYhhmm]", "JulianDayFromYear0[days]", "TimeFromStart[days]",
          "Simulation_Period", "Run", "IDpoint"]
@@ -44,11 +44,11 @@ DEFAULT_SOIL_BOOK = (0, 1, 2, 3, 4, 5)
 
 def _theta_ice(p, l: int) -> float:
     # output.cc:write_snow_file(choice=1) prints var_to_print / dz directly.
-    return p.wice[l] / p.Dz[l] if p.Dz[l] > 0 else NODATA
+    return p.wice[l] / p.Dz[l] if p.Dz[l] > 0 else NUMBER_NOVALUE
 
 
 def _theta_w(p, l: int) -> float:
-    return p.wliq[l] / p.Dz[l] if p.Dz[l] > 0 else NODATA
+    return p.wliq[l] / p.Dz[l] if p.Dz[l] > 0 else NUMBER_NOVALUE
 
 
 # profile stem -> per-snow-layer value function (l is 0-based into the prof lists)
@@ -87,7 +87,7 @@ def write_snow_profile(path: str, stem: str, records, JD0: float, point: int,
         row = _book(date, JD, JD0, point, sim_period)
         nl = len(prof.Dz) if prof is not None else 0
         for i in range(ncol):
-            row.append(_fmt(fn(prof, i)) if i < nl else _fmt(NODATA))
+            row.append(_fmt(fn(prof, i)) if i < nl else _fmt(NUMBER_NOVALUE))
         return row
 
     with open(path, "w") as fh:
@@ -147,7 +147,7 @@ def interpolate_soil(lmin: int, h: float, max_l: int, dz: Sequence[float],
         z0 = z
         l += 1
 
-        if not (int(qval) == int(NUMBER_NOVALUE) and l <= max_l + 1):
+        if not (is_novalue(qval) and l <= max_l + 1):
             break
 
     return qval
@@ -160,7 +160,7 @@ def _soil_book_row(fields, date, JD: float, JD0: float, point: int,
     # order), -9999 for a position no field claims (osl[j] < 0).
     values = [date.strftime("%d/%m/%Y %H:%M"), f"{JD:f}", f"{JD - JD0:f}",
              str(sim_period), "1", str(point)]
-    return [values[i] if i >= 0 else _fmt(NODATA) for i in fields]
+    return [values[i] if i >= 0 else _fmt(NUMBER_NOVALUE) for i in fields]
 
 
 def write_soil_profile(path: str, records, JD0: float, point: int,
@@ -181,13 +181,13 @@ def write_soil_profile(path: str, records, JD0: float, point: int,
     default (``SoilAll``\\ =1, or unset) is all six in canonical order, but
     ``DateSoil``/``JulianDayFromYear0Soil``/``TimeFromStartSoil``/
     ``PeriodSoil``/``RunSoil``/``IDPointSoil`` (keywords 349-354) can select
-    a subset and reorder it -- see ``pipeline._soil_book_fields``.
+    a subset and reorder it -- see ``recorder._soil_book_fields``.
 
     ``plot_depths``/``dz_mm`` (``SoilPlotDepths``): when given, each column
     is :func:`interpolate_soil` at that target depth [mm] instead of the
     corresponding internal node's own value -- ``depth_cols`` then only
     supplies the header text (the raw keyword values, not the node depths
-    :func:`geotop_py.pipeline._soil_depth_cols` would compute). Every field
+    :func:`geotop_py.output.recorder._soil_depth_cols` would compute). Every field
     this driver writes through here has no genuine surface node
     (``interpolate_soil``'s ``lmin=0``, only ``psiz``/``Pzplot`` in the real
     source), so this always interpolates with ``lmin=1``.
@@ -204,10 +204,10 @@ def write_soil_profile(path: str, records, JD0: float, point: int,
                 for h in plot_depths:
                     row.append(_fmt(interpolate_soil(1, h, nsoil, dz_mm, q)))
             else:
-                row.extend(_fmt(NODATA) for _ in plot_depths)
+                row.extend(_fmt(NUMBER_NOVALUE) for _ in plot_depths)
         else:
             for k in range(len(depth_cols)):
-                row.append(_fmt(st[k]) if k < len(st) else _fmt(NODATA))
+                row.append(_fmt(st[k]) if k < len(st) else _fmt(NUMBER_NOVALUE))
         return row
 
     with open(path, "w") as fh:

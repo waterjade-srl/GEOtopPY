@@ -18,6 +18,27 @@ Tfreezing = 0.0     # freezing temperature [degC]
 Lf = 333700.0       # latent heat of fusion [J/kg]  (see constants.h)
 Pi = 3.14159265358979
 
+# GEOtop: src/geotop/geotop.cc:157-159
+#: GEOtop's sentinels: ``NUMBER_NOVALUE`` is "no value here" (also what the
+#: output tables write for a missing value), ``NUMBER_ABSENT`` is "the file
+#: has no such column", ``STRING_NOVALUE`` a string keyword left unset.
+NUMBER_NOVALUE = -9999.0
+NUMBER_ABSENT = -9998.0
+STRING_NOVALUE = "none"
+
+
+# GEOtop compares sentinels after a cast to long, so -9999.4 is novalue too.
+def is_novalue(v: float) -> bool:
+    return int(v) == int(NUMBER_NOVALUE)
+
+
+def is_absent(v: float) -> bool:
+    return int(v) == int(NUMBER_ABSENT)
+
+
+def is_undefined(v: float) -> bool:
+    return is_absent(v) or is_novalue(v)
+
 # GEOtop: src/geotop/constants.h:60-62
 # GEOtop: src/geotop/meteo.cc:84 (LRv falls back to LRd)
 # Default lapse rates when the matching LapseRate* keyword component is

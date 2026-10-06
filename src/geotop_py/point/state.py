@@ -18,9 +18,9 @@ from typing import List, Optional
 from .. import constants as C
 from .. import laws
 from ..energy.column import EnergyColumn, SoilLayer, SolverOptions
+from ..snow.mass_balance import GlacierWBParams, SnowWBParams
 from ..snow.state import SnowColumn
-from ..snow.wb import GlacierWBParams, SnowWBParams
-from ..water import init as soil_init
+from ..water import initial_state as soil_init
 from ..water import soilwater as sw
 
 
@@ -58,7 +58,7 @@ class Column1D:
     # a SnowColumn because in GEOtop it *is* one -- same Statevar3D, same
     # constitutive laws (SolvePointEnergyBalance selects the snow branch for
     # every l <= ns+ng), same snow_layer_combination called with the glacier
-    # parameters.  Only the water balance differs (wb.WBglacier).  ``None``
+    # parameters.  Only the water balance differs (mass_balance.WBglacier).  ``None``
     # means the glacier module is off, which is not the same as a glacier with
     # zero layers.
     glac: Optional[SnowColumn] = None
@@ -142,7 +142,7 @@ def soil_layers_from_pa(pa: List[List[float]], nl: int,
                         init: soil_init.SoilInitResult) -> List[SoilLayer]:
     """Build the energy solver's per-layer soil state from the same ``pa``
     matrix (:mod:`geotop_py.io.soil`, oracle-pinned) and initial condition
-    (:func:`geotop_py.water.init.initial_soil_state`) the water-balance side
+    (:func:`geotop_py.water.initial_state.initial_soil_state`) the water-balance side
     already reads, so the energy and water sides start from one soil state.
 
     ``Tstar`` is left at its dataclass default (0.0): :func:`flatten`

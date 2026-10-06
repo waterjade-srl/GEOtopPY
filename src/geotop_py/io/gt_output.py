@@ -26,8 +26,9 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict, List
 
+from ..constants import NUMBER_NOVALUE
+
 _DATE_COL = "Date12[DDMMYYYYhhmm]"
-_NODATA = -9999.0
 
 
 @dataclass
@@ -65,7 +66,7 @@ def _to_float(tok: str) -> float:
     if tok == "":
         return math.nan
     v = float(tok)
-    return math.nan if v <= _NODATA + 1e-6 else v
+    return math.nan if v <= NUMBER_NOVALUE + 1e-6 else v
 
 
 def unique_names(names: List[str]) -> List[str]:

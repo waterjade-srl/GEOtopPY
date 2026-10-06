@@ -26,17 +26,13 @@ from __future__ import annotations
 
 from typing import List, Optional, Sequence, Tuple
 
-from .parfile import NUMBER_NOVALUE, _Reader, find_number
+from ..constants import NUMBER_ABSENT, NUMBER_NOVALUE
+from .parfile import _Reader, find_number
 
 #: read_txt_matrix is called as read_txt_matrix(name, 33, 44, ...) throughout.
 COMMENT_CHAR = 33     # '!'
 SEP_CHAR = 44         # ','
 NEWLINE = 10
-
-# GEOtop: src/geotop/geotop.cc:158
-#: GEOtop's sentinel for a column the file does not provide.
-NUMBER_ABSENT = -9998.0
-
 
 # GEOtop: src/libraries/ascii/tabs.cc:451-452
 def _is_junk(c: int) -> bool:

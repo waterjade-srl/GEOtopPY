@@ -35,19 +35,14 @@ import os
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Sequence, Tuple
 
+from ..constants import NUMBER_ABSENT, NUMBER_NOVALUE, STRING_NOVALUE  # noqa: F401
+
 # readline_par is called as readline_par(f, 33, 61, 44, ...) throughout GEOtop.
 COMMENT_CHAR = 33     # '!'
 SEPFIELD_CHAR = 61    # '='
 SEPVECT_CHAR = 44     # ','
 QUOTE = 34            # '"'
 NEWLINE = 10
-
-# GEOtop: src/geotop/geotop.cc:157-159
-#: GEOtop's sentinels for a keyword the file does not mention.
-NUMBER_NOVALUE = -9999.0
-NUMBER_ABSENT = -9998.0
-STRING_NOVALUE = "none"
-
 
 # GEOtop: src/libraries/ascii/tabs.cc:277-353 (find_number)
 def find_number(chars: Sequence[int]) -> float:

@@ -1,5 +1,5 @@
 """Per-point, per-step meteo assembly: GEOtop's ``meteo_distr``/``Meteodistr``
-composed into one call that returns a :class:`geotop_py.meteo.step.Meteo`.
+composed into one call that returns a :class:`geotop_py.meteo.forcing.Meteo`.
 
 Every individual piece here (:mod:`geotop_py.meteo.meteodistr`'s ``get_*``
 functions, :mod:`geotop_py.psychro`) is already ported and pinned
@@ -39,9 +39,9 @@ from typing import List, Optional, Tuple
 
 from .. import constants as C
 from .. import dates, psychro
+from ..constants import NUMBER_NOVALUE, is_novalue, is_undefined
 from ..energy import rad
 from ..io.meteo import IDX
-from ..io.parfile import NUMBER_ABSENT, NUMBER_NOVALUE
 from . import meteodistr as md
 
 
@@ -78,20 +78,8 @@ class Meteo:
             self.tau_cloud_av = self.tau_cloud
 
 
-def _novalue(v: float) -> bool:
-    return int(v) == int(NUMBER_NOVALUE)
-
-
-def _absent(v: float) -> bool:
-    return int(v) == int(NUMBER_ABSENT)
-
-
-def _undefined(v: float) -> bool:
-    return _novalue(v) or _absent(v)
-
-
 def _opt(v: float) -> Optional[float]:
-    return None if _undefined(v) else v
+    return None if is_undefined(v) else v
 
 
 # GEOtop: src/geotop/constants.h:60-62 (LapseRateTair/Tdew/Prec)
@@ -114,7 +102,7 @@ class LapseRates:
         def comps(name: str, fallback: float) -> List[float]:
             n = pf.components(name)
             vals = [pf.number(name, j, NUMBER_NOVALUE) for j in range(n)]
-            return [fallback if _novalue(v) else v for v in vals]
+            return [fallback if is_novalue(v) else v for v in vals]
         return cls(Ta=comps("LapseRateTemp", C.LapseRateTair),
                   Tdew=comps("LapseRateDewTemp", C.LapseRateTdew),
                   Prec=comps("LapseRatePrec", C.LapseRatePrec))
@@ -299,23 +287,23 @@ def _find_tau_cloud_live(JDbeg: float, JDend: float, E0: float, Et: float,
     missing T falls back to 0 degC.
     """
     P = psychro.pressure(Z_station)
-    if not _undefined(RH_raw):
+    if not is_undefined(RH_raw):
         RH = RH_raw / 100.0
-    elif not _undefined(T_raw) and not _undefined(Td_raw):
+    elif not is_undefined(T_raw) and not is_undefined(Td_raw):
         RH = psychro.RHfromTdew(T_raw, Td_raw, Z_station)
     else:
         RH = 0.4
     RH = max(RH, 0.01)
-    T = 0.0 if _undefined(T_raw) else T_raw
+    T = 0.0 if is_undefined(T_raw) else T_raw
 
     others = rad.make_others(lat_deg, lon_deg, ST, Et, Delta, RH, T, P,
                              Lozone=Lozone, alpha=alpha, beta=beta)
     return rad.cloud_transmittance(
         JDbeg, JDend, others, E0,
-        ISWR=None if _undefined(SW) else SW,
+        ISWR=None if is_undefined(SW) else SW,
         sky=station_sky, SWrefl_surr=0.0,
-        SWdiffuse=None if _undefined(SWd) else SWd,
-        SWdirect=None if _undefined(SWb) else SWb)
+        SWdiffuse=None if is_undefined(SWd) else SWd,
+        SWdirect=None if is_undefined(SWb) else SWb)
 
 
 # GEOtop: src/geotop/energy.balance.cc:150-152
@@ -357,7 +345,7 @@ def resolve_tau_cloud(JDbeg: float, JDend: float, row: List[float], point,
     E0, Et, Delta = rad.sun((JDbeg + JDend) / 2.0)
     SWb, SWd, SW = row[IDX["iSWb"]], row[IDX["iSWd"]], row[IDX["iSW"]]
     tau_cloud = None
-    if not (_undefined(SWb) or _undefined(SWd)) or not _undefined(SW):
+    if not (is_undefined(SWb) or is_undefined(SWd)) or not is_undefined(SW):
         tau_cloud = _find_tau_cloud_live(
             JDbeg, JDend, E0, Et, Delta,
             cfg.station_latitude, cfg.station_longitude,
@@ -368,9 +356,9 @@ def resolve_tau_cloud(JDbeg: float, JDend: float, row: List[float], point,
     tau_cloud_av = None
     iC = row[IDX["iC"]]
     itauC = row[IDX["itauC"]]
-    if not _undefined(iC):
+    if not is_undefined(iC):
         tau_cloud_av = min(max(1.0 - 0.71 * iC, 0.0), 1.0)
-    elif not _undefined(itauC):
+    elif not is_undefined(itauC):
         tau_cloud_av = min(max(itauC, 0.0), 1.0)
 
     if tau_cloud_av is None:
@@ -427,7 +415,7 @@ def assemble_meteo(row: List[float], Dt: float, Z_station: float, point,
     # that last bit reaches tau_cloud, then SWbeam, then the whole column.
     # GEOtop: src/geotop/meteodistr.cc:114-121
     # GEOtop: src/geotop/meteodistr.cc:138-144
-    if not _undefined(T_station):
+    if not is_undefined(T_station):
         row[IDX["iT"]] = md.get_temperature(T_station, Z_station, Z_station,
                                             lapse_Ta)
 
@@ -440,7 +428,7 @@ def assemble_meteo(row: List[float], Dt: float, Z_station: float, point,
     # GEOtop: src/geotop/meteodistr.cc:175-181
     # GEOtop: src/geotop/meteodistr.cc:200-207
     # Same round trip on the dew point, with the dew-point lapse rate.
-    if not _undefined(Td_station):
+    if not is_undefined(Td_station):
         row[IDX["iTdew"]] = md.get_temperature(Td_station, Z_station, Z_station,
                                                lapse_Tdew)
 

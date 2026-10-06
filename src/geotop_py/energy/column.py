@@ -84,7 +84,7 @@ class EnergyColumn:
     the parameters of soil layer ``k`` (k = 1 for the topmost soil layer),
     matching GEOtop's ``pa[...][l-ns-ng]`` indexing.
     """
-    Dlayer: List[float]     # [m]  (energy solver uses metres; strati uses mm)
+    Dlayer: List[float]     # [m]  (energy solver uses metres; snow_layers uses mm)
     ice: List[float]        # [kg/m2]
     liq: List[float]        # [kg/m2]
     T0: List[float]         # previous-step temperature [degC]

@@ -1,4 +1,4 @@
-"""Tests for geotop_py.snow.strati.
+"""Tests for geotop_py.snow.snow_layers.
 
 Two kinds of check:
 
@@ -16,7 +16,7 @@ Two kinds of check:
 import pytest
 
 from geotop_py import laws
-from geotop_py.snow import strati
+from geotop_py.snow import snow_layers
 from geotop_py.snow.state import SnowColumn
 
 try:
@@ -44,7 +44,7 @@ def test_merge_conserves_enthalpy_mass_depth():
     col = cold_column()
 
     # merge layer 3 into layer 2 (result in slot 2), as merge_layers would
-    strati.snowlayer_merging(col, A, 3, 2, 2)
+    snow_layers.snowlayer_merging(col, A, 3, 2, 2)
 
     # slot 3 still holds its old values until the caller shifts/clears it;
     # compare the merged slot 2 against the sum of the originals.
@@ -63,7 +63,7 @@ def test_merge_layers_full_conserves_totals():
     swe0 = col.swe()
     d0 = col.depth()
 
-    strati.merge_layers(col, A, 2)  # merge middle layer into a neighbour
+    snow_layers.merge_layers(col, A, 2)  # merge middle layer into a neighbour
 
     assert col.lnum == 2
     assert col.total_internal_energy() == pytest.approx(h0, rel=1e-9)
@@ -77,8 +77,8 @@ def test_merge_matches_cxx_oracle():
     col_py = cold_column()
     col_cxx = cold_column()
 
-    strati.merge_layers(col_py, A, 2)
-    strati.merge_layers(
+    snow_layers.merge_layers(col_py, A, 2)
+    snow_layers.merge_layers(
         col_cxx, A, 2,
         ienergy=_cxx.internal_energy,
         from_ienergy=_cxx.from_internal_energy,
@@ -104,7 +104,7 @@ def test_combination_conserves_depth_and_swe():
     swe0 = col.swe()
 
     # SWEmax_layer small enough that the thick layers must split
-    strati.snow_layer_combination(
+    snow_layers.snow_layer_combination(
         col, A, Ta=-5.0, inf=inf_of(12),
         SWEmax_layer=20.0, SWEmax_tot=1e12,
     )
@@ -119,7 +119,7 @@ def test_combination_splits_thick_layer():
     # single layer far above 2*SWEmax_layer must be split into several
     col = SnowColumn.from_layers([(400.0, 120.0, 0.0, -6.0)], max=12)
     swe0 = col.swe()
-    strati.snow_layer_combination(
+    snow_layers.snow_layer_combination(
         col, A, Ta=-6.0, inf=inf_of(12),
         SWEmax_layer=20.0, SWEmax_tot=1e12,
     )
@@ -136,7 +136,7 @@ def test_combination_merges_thin_layers():
         [(10.0, 1.0, 0.0, -3.0)] * 6, max=12)
     swe0 = col.swe()
     d0 = col.depth()
-    strati.snow_layer_combination(
+    snow_layers.snow_layer_combination(
         col, A, Ta=-3.0, inf=inf_of(12),
         SWEmax_layer=20.0, SWEmax_tot=1e12,
     )
@@ -147,7 +147,7 @@ def test_combination_merges_thin_layers():
 
 def test_combination_resets_negligible_pack():
     col = SnowColumn.from_layers([(0.01, 1e-8, 0.0, -1.0)], max=12)
-    strati.snow_layer_combination(
+    snow_layers.snow_layer_combination(
         col, A, Ta=-1.0, inf=inf_of(12),
         SWEmax_layer=20.0, SWEmax_tot=1e12,
     )
@@ -158,7 +158,7 @@ def test_combination_resets_negligible_pack():
 
 def test_combination_caps_total_swe():
     col = cold_column(max=12)         # total ice 135
-    strati.snow_layer_combination(
+    snow_layers.snow_layer_combination(
         col, A, Ta=-5.0, inf=inf_of(12),
         SWEmax_layer=20.0, SWEmax_tot=100.0,   # cap below current total
     )

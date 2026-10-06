@@ -27,7 +27,7 @@ from typing import List, Sequence
 
 from .. import constants as C
 from .. import laws
-from ..io.parfile import NUMBER_NOVALUE
+from ..constants import is_novalue
 from . import soilwater as sw
 from .richards1d import RichardsState, node_depths
 
@@ -133,7 +133,7 @@ def initial_soil_state(pa: Sequence[Sequence[float]], nl: int,
     """
     T = [0.0] + [pa[C.jT][l] for l in range(1, nl + 1)]
 
-    if int(init_water_table_depth) != int(NUMBER_NOVALUE):
+    if not is_novalue(init_water_table_depth):
         P = hydrostatic_pressure(pa, nl, init_water_table_depth, slope_deg)
     else:
         P = layer_pressures(pa, nl)

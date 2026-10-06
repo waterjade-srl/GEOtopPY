@@ -35,9 +35,9 @@ import os
 from dataclasses import dataclass
 from typing import Dict, FrozenSet, List, Optional, Sequence, Tuple
 
+from ..constants import NUMBER_NOVALUE, STRING_NOVALUE, is_novalue, is_undefined
 from . import geomorphology, rastermap
-from .parfile import NUMBER_NOVALUE, STRING_NOVALUE
-from .table import NUMBER_ABSENT, read_txt_matrix
+from .table import read_txt_matrix
 
 #: Point columns, in storage order. The index of a name here, plus one, is the
 #: column index the point matrix is addressed by.
@@ -103,18 +103,6 @@ MAP_EXTENSIONS = (".grass", ".asc")
 
 class PointError(ValueError):
     """Raised where GEOtop would abort while reading the point list."""
-
-
-def _absent(value: float) -> bool:
-    return int(value) == int(NUMBER_ABSENT)
-
-
-def _novalue(value: float) -> bool:
-    return int(value) == int(NUMBER_NOVALUE)
-
-
-def _undefined(value: float) -> bool:
-    return _absent(value) or _novalue(value)
 
 
 @dataclass
@@ -219,7 +207,7 @@ def read_point_file(name: Optional[str], col_names: Sequence[str],
     for n in range(1, len(points) + 1):
         for j in range(1, PTTOT + 1):
             out[n][j] = points[n - 1][j - 1]
-            if _undefined(out[n][j]):
+            if is_undefined(out[n][j]):
                 out[n][j] = old[n][j] if n <= old_npoints else old[old_npoints][j]
     return out
 
@@ -241,7 +229,7 @@ def map_derived_columns(chkpt: List[List[float]],
     npoints = len(chkpt) - 1
 
     def any_missing(*names: str) -> bool:
-        return any(_undefined(chkpt[n][COL[name]])
+        return any(is_undefined(chkpt[n][COL[name]])
                    for n in range(1, npoints + 1) for name in names)
 
     coordinates = not any_missing("ptX", "ptY")
@@ -289,7 +277,7 @@ def _lookup(M: "rastermap.RasterMap", chkpt: List[List[float]],
                           NUMBER_NOVALUE)
     c = geomorphology.col(chkpt[n][COL["ptX"]], M.ncols, M.dx, M.X0,
                           NUMBER_NOVALUE)
-    if _undefined(r) or _undefined(c):
+    if is_undefined(r) or is_undefined(c):
         raise PointError(
             f"point {n} at ({chkpt[n][COL['ptX']]}, {chkpt[n][COL['ptY']]}) "
             "falls outside the map it would be read from")
@@ -317,16 +305,16 @@ def fill_from_maps(chkpt: List[List[float]], pf, base_dir: str) -> List[List[flo
     novalue = NUMBER_NOVALUE
 
     def missing(name: str) -> bool:
-        return any(_undefined(out[n][COL[name]]) for n in range(1, npoints + 1))
+        return any(is_undefined(out[n][COL[name]]) for n in range(1, npoints + 1))
 
     def fill(name: str, M: "rastermap.RasterMap") -> None:
         for n in range(1, npoints + 1):
-            if _undefined(out[n][COL[name]]):
+            if is_undefined(out[n][COL[name]]):
                 r, c = _lookup(M, out, n)
                 out[n][COL[name]] = M.data[r][c]
 
-    coordinates = not any(_undefined(out[n][COL["ptX"]])
-                          or _undefined(out[n][COL["ptY"]])
+    coordinates = not any(is_undefined(out[n][COL["ptX"]])
+                          or is_undefined(out[n][COL["ptY"]])
                           for n in range(1, npoints + 1))
 
     # (a) elevation model. It is smoothed once here, and every elevation read
@@ -395,7 +383,7 @@ def fill_from_maps(chkpt: List[List[float]], pf, base_dir: str) -> List[List[flo
         grids = geomorphology.curvature(Z.dy, Z.dx, Q, novalue)
         for name, grid in zip(curvatures, grids):
             for n in range(1, npoints + 1):
-                if _undefined(out[n][COL[name]]):
+                if is_undefined(out[n][COL[name]]):
                     r, c = _lookup(Z, out, n)
                     out[n][COL[name]] = grid[r][c]
 
@@ -423,11 +411,11 @@ def apply_defaults(chkpt: List[List[float]],
                             ("ptMAXSWE", DEFAULT_MAXSWE),
                             ("ptLAT", options.latitude),
                             ("ptLON", options.longitude)):
-            if _novalue(row[COL[name]]):
+            if is_novalue(row[COL[name]]):
                 row[COL[name]] = value
-        if _novalue(row[COL["ptID"]]):
+        if is_novalue(row[COL["ptID"]]):
             row[COL["ptID"]] = float(i)
-        if _novalue(row[COL["ptHOR"]]):
+        if is_novalue(row[COL["ptHOR"]]):
             row[COL["ptHOR"]] = row[COL["ptID"]]
     return out
 
@@ -449,7 +437,7 @@ def properties(chkpt: List[List[float]], n: int) -> PointProperties:
         raise PointError(f"point {n} has soil type {soil_type} <= 0")
 
     bed = row[COL["ptBED"]]
-    if _novalue(bed):
+    if is_novalue(bed):
         bed = DEFAULT_BEDROCK_DEPTH
 
     return PointProperties(
