@@ -54,16 +54,24 @@ Pa0 = 1013.25               # mean atmospheric pressure at sea level [mbar]
 # but the angles fused here are latitude, declination, slope and aspect --
 # fixed for a run or a step -- plus the solar height, which repeats across the
 # Simpson refinement of one window.
-_libm = _ctypes.CDLL(_ctypes_util.find_library("m"))
-_libm.sincos.restype = None
-_libm.sincos.argtypes = [_ctypes.c_double,
-                         _ctypes.POINTER(_ctypes.c_double),
-                         _ctypes.POINTER(_ctypes.c_double)]
+_libm_name = _ctypes_util.find_library("m")
+_libm = _ctypes.CDLL(_libm_name) if _libm_name is not None else None
+
+if _libm is not None:
+    _libm.sincos.restype = None
+    _libm.sincos.argtypes = [
+        _ctypes.c_double,
+        _ctypes.POINTER(_ctypes.c_double),
+        _ctypes.POINTER(_ctypes.c_double),
+    ]
 
 
 @_lru_cache(maxsize=8192)
 def sincos(x: float) -> Tuple[float, float]:
-    """``(sin(x), cos(x))`` as one libm ``sincos`` call, not two separate ones."""
+    """Return ``(sin(x), cos(x))``, using libc ``sincos`` when available."""
+    if _libm is None:
+        return math.sin(x), math.cos(x)
+
     sn = _ctypes.c_double()
     cs = _ctypes.c_double()
     _libm.sincos(x, _ctypes.byref(sn), _ctypes.byref(cs))
