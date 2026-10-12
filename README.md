@@ -60,6 +60,9 @@ support for every possible GEOtop configuration.
 ## Install and run
 
 Python 3.9 or newer is required; CI checks Python 3.9, 3.10 and 3.12.
+
+### Linux and macOS
+
 From the repository root:
 
 ```bash
@@ -67,6 +70,34 @@ python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install -e .
 GEOtopPY /path/to/case
+```
+
+### Windows with Conda
+
+Install [Git for Windows](https://git-scm.com/download/win) and
+[Miniforge](https://github.com/conda-forge/miniforge) or Miniconda. Keep Git
+repositories outside OneDrive-synchronised folders. In PowerShell or the
+Miniforge Prompt:
+
+```powershell
+git clone https://github.com/waterjade-srl/GEOtopPY.git
+cd GEOtopPY
+conda create -n geotoppy python=3.12 -y
+conda activate geotoppy
+python -m pip install -e .
+GEOtopPY --help
+GEOtopPY "C:\path\to\case" --suffix _py
+```
+
+The `--suffix _py` option writes Python results to suffixed output paths, so
+they can be compared with existing GEOtop reference results. In a later
+terminal session, run `conda activate geotoppy` before using `GEOtopPY`.
+The command is then available from any directory.
+
+To also install Jupyter notebooks and the test tools:
+
+```powershell
+python -m pip install -e ".[notebooks,test]"
 ```
 
 The case directory must contain `geotop.inpts` and its referenced input files.
